@@ -33,12 +33,12 @@ class MqttAdapter:
         value = self._get_value(message['value'])
         formatted_timestamp = self._format_timestamp(message['timestamp'])
         meta = self._get_meta(formatted_timestamp)
-
+        
         self.publish(source, icestorm_topic, value, meta)
 
     def _get_source(self, topic):
         if topic not in self.config['sensor_ids']:
-            return topic
+            return 'MISSING_ID: '+topic
         else:
             return self.config['sensor_ids'][topic]
 

@@ -119,7 +119,7 @@ class MqttAdapter(EventsMixin, TestCase):
 
         assert_that(self.servant.notify,
                     called().
-                    with_args(close_to(25.6, 0.000001), 'meshliumf958/SCP5/TC', meta, anything()).
+                    with_args(close_to(25.6, 0.000001), 'MISSING_ID: meshliumf958/SCP5/TC', meta, anything()).
                     async(timeout=2))
 
     def test_get_event_from_unconfigured_sensor_magnitude(self):
@@ -141,5 +141,5 @@ class MqttAdapter(EventsMixin, TestCase):
 
         assert_that(self.servant_unconfigured.notify,
                     called().
-                    with_args(close_to(25.6, 0.000001), 'meshliumf958/SCP4/HUM', meta, anything()).
+                    with_args(close_to(25.6, 0.000001), 'MISSING_ID: meshliumf958/SCP4/HUM', meta, anything()).
                     async(timeout=2))
