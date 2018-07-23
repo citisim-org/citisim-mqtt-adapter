@@ -80,8 +80,15 @@ class EventsMixin:
 class MqttAdapter(EventsMixin, TestCase):
     def setUp(self):
         EventsMixin.setUp(self)
+
         self.icestorm_topic_name='Temperature'
 
+        self.servant = Mimic(Spy, SmartObject.AnalogSink)
+        self.proxy = self._adapter_add(self.servant)
+        self._subscribe(self.icestorm_topic_name, self.proxy)
+
+    def test_get_event_with_value_and_timestamp(self):
+        # get an event from IceStorm originated in mqtt broker
         self.mqtt_msg = mqtt.MQTTMessage(mid=0, topic=b'meshliumf958/SCP4/TC')
         self.mqtt_msg.payload = ('{\r\n  "id": "186897",\r\n  "id_wasp": "SCP4", \r\n '
                                 '"id_secret": "751C67057C105442",\r\n  '
@@ -90,19 +97,49 @@ class MqttAdapter(EventsMixin, TestCase):
         self.mqtt_msg.payload = self.mqtt_msg.payload
         self.formatted_timestamp = '1531987301'
 
-        self.servant = Mimic(Spy, SmartObject.AnalogSink)
-        self.proxy = self._adapter_add(self.servant)
-        self._subscribe(self.icestorm_topic_name, self.proxy)
+        self.mqttAdapter.on_message(client=self.mqtt_client, userdata=None, msg=self.mqtt_msg)
+        meta = {SmartObject.MetadataField.Timestamp: self.formatted_timestamp}
 
-    def test_get_event_with_value_and_timestamp(self):
-        # get an event from IceStorm originated in mqtt broker
-        print(self.mqtt_msg.topic)
-        print(self.mqtt_msg.payload)
+        assert_that(self.servant.notify,
+                    called().
+                    with_args(close_to(25.6, 0.000001), '00000023', meta, anything()).
+                    async(timeout=2))
+
+    def test_get_event_from_unconfigured_sensor_id(self):
+        self.mqtt_msg = mqtt.MQTTMessage(mid=0, topic=b'meshliumf958/SCP5/TC')
+        self.mqtt_msg.payload = ('{\r\n  "id": "186897",\r\n  "id_wasp": "SCP5", \r\n '
+                                '"id_secret": "751C67057C105442",\r\n  '
+                                '"sensor": "TC",\r\n  "value": "25.6",\r\n  '
+                                '"timestamp": "2018-07-19T11:01:41+03:00"\r\n}').encode()
+        self.mqtt_msg.payload = self.mqtt_msg.payload
+        self.formatted_timestamp = '1531987301'
 
         self.mqttAdapter.on_message(client=self.mqtt_client, userdata=None, msg=self.mqtt_msg)
         meta = {SmartObject.MetadataField.Timestamp: self.formatted_timestamp}
 
         assert_that(self.servant.notify,
                     called().
-                    with_args(close_to(25.6, 0.000001), '23', meta, anything()).
+                    with_args(close_to(25.6, 0.000001), 'meshliumf958/SCP5/TC', meta, anything()).
+                    async(timeout=2))
+
+    def test_get_event_from_unconfigured_sensor_magnitude(self):
+        self.icestorm_topic_name_unconfigured="Unconfigured"
+        self.servant_unconfigured = Mimic(Spy, SmartObject.AnalogSink)
+        self.proxy_unconfigured = self._adapter_add(self.servant_unconfigured)
+        self._subscribe(self.icestorm_topic_name_unconfigured, self.proxy_unconfigured)
+
+        self.mqtt_msg = mqtt.MQTTMessage(mid=0, topic=b'meshliumf958/SCP4/HUM')
+        self.mqtt_msg.payload = ('{\r\n  "id": "186897",\r\n  "id_wasp": "SCP4", \r\n '
+                                '"id_secret": "751C67057C105442",\r\n  '
+                                '"sensor": "HUM",\r\n  "value": "25.6",\r\n  '
+                                '"timestamp": "2018-07-19T11:01:41+03:00"\r\n}').encode()
+        self.mqtt_msg.payload = self.mqtt_msg.payload
+        self.formatted_timestamp = '1531987301'
+
+        self.mqttAdapter.on_message(client=self.mqtt_client, userdata=None, msg=self.mqtt_msg)
+        meta = {SmartObject.MetadataField.Timestamp: self.formatted_timestamp}
+
+        assert_that(self.servant_unconfigured.notify,
+                    called().
+                    with_args(close_to(25.6, 0.000001), 'meshliumf958/SCP4/HUM', meta, anything()).
                     async(timeout=2))

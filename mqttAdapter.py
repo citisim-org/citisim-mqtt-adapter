@@ -37,10 +37,16 @@ class MqttAdapter:
         self.publish(source, icestorm_topic, value, meta)
 
     def _get_source(self, topic):
-        return self.config['sensor_ids'][topic]
+        if topic not in self.config['sensor_ids']:
+            return topic
+        else:
+            return self.config['sensor_ids'][topic]
 
     def _get_icestorm_topic(self, message):
-        return self.config['icestorm_topics'][message['sensor']]
+        if message['sensor'] not in self.config['icestorm_topics']:
+            return "Unconfigured"
+        else:
+            return self.config['icestorm_topics'][message['sensor']]
 
     def _get_value(self, value):
         return float(value)
