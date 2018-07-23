@@ -28,14 +28,30 @@ class MqttAdapter:
     def on_message(self, client, userdata, msg):
         message = json.loads(msg.payload.decode())
 
-        source = self.config['sensor_ids'][msg.topic]
-        topic = self.config['icestorm_topics'][message['sensor']]
+        source = self._get_source(msg.topic)
+        icestorm_topic = self._get_icestorm_topic(message)
+        value = self._get_value(message['value'])
+        formatted_timestamp = self._format_timestamp(message['timestamp'])
+        meta = self._get_meta(formatted_timestamp)
 
-        message['timestamp'] = re.sub(r"[:]|([-](?!((\d{2}[:]\d{2})|(\d{4}))$))", '', message['timestamp'])
-        message['timestamp'] = int(datetime.strptime(message['timestamp'], "%Y%m%dT%H%M%S%z").timestamp())
-        meta = {'timestamp': message['timestamp']}
+        self.publish(source, icestorm_topic, value, meta)
 
-        #self.publish(source, topic, value, meta)
+    def _get_source(self, topic):
+        return self.config['sensor_ids'][topic]
+
+    def _get_icestorm_topic(self, message):
+        return self.config['icestorm_topics'][message['sensor']]
+
+    def _get_value(self, value):
+        return float(value)
+
+    def _format_timestamp(self, timestamp):
+        formatted_timestamp = re.sub(r"[:]|([-](?!((\d{2}[:]\d{2})|(\d{4}))$))", '', timestamp)
+        formatted_timestamp = int(datetime.strptime(formatted_timestamp, "%Y%m%dT%H%M%S%z").timestamp())
+        return formatted_timestamp
+
+    def _get_meta(self, timestamp):
+        return {"timestamp": timestamp}
 
     def publish(self, source, topic, value, meta):
         publisher = self.citisim_broker.get_publisher(topic)
@@ -49,8 +65,8 @@ class MqttAdapter:
 if __name__ == "__main__":
     citisim_broker = Broker(sys.argv[1])
 
-    json_data=open(sys.argv[2]).read()
-    config = json.loads(json_data)
+    json_config=open(sys.argv[2]).read()
+    config = json.loads(json_config)
 
     mqtt_client = mqtt.Client(config['client'])
     mqtt_2_citisim = MqttAdapter(mqtt_client, citisim_broker, config)

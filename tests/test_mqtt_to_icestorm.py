@@ -19,8 +19,7 @@ from unittest import TestCase
 
 import mqttAdapter
 
-from libcitisim import MetadataHelper, MetadataField, SmartObject
-import libcitisim
+from libcitisim import MetadataHelper, MetadataField, SmartObject, Broker
 import paho.mqtt.client as mqtt
 import json
 
@@ -34,6 +33,7 @@ class EventsMixin:
             shutil.rmtree(db_path)
         os.makedirs(db_path)
 
+        cls.pwd = pwd
         cls.config = os.path.join(pwd, "tests.config")
         cmd = "icebox --Ice.Config=" + cls.config
         cls.is_server = Popen(cmd.split(), cwd=pwd, stdout=PIPE)
@@ -55,10 +55,12 @@ class EventsMixin:
         self.adapter = self.ic.createObjectAdapterWithEndpoints(
             'adapter', 'tcp -h 127.0.0.1')
         self.adapter.activate()
-        self.mqttClient = mqtt.Client('CitisimUCLM')
-
+        self.mqtt_client = mqtt.Client('CitisimUCLM')
+        self.citisim_broker = Broker(self.config)
+        json_config = open(os.path.join(self.pwd, 'mqtt.test.config')).read()
+        self.config = json.loads(json_config)
         # the real subject under testing
-        self.mqttAdapter = MqttAdapter()
+        self.mqttAdapter = mqttAdapter.MqttAdapter(self.mqtt_client, self.citisim_broker, self.config)
 
     def _get_topic(self, name):
         manager = self.ic.propertyToProxy("TopicManager.Proxy")
@@ -78,21 +80,29 @@ class EventsMixin:
 class MqttAdapter(EventsMixin, TestCase):
     def setUp(self):
         EventsMixin.setUp(self)
-        self.topic_name='Temperature'
+        self.icestorm_topic_name='Temperature'
+
+        self.mqtt_msg = mqtt.MQTTMessage(mid=0, topic=b'meshliumf958/SCP4/TC')
+        self.mqtt_msg.payload = ('{\r\n  "id": "186897",\r\n  "id_wasp": "SCP4", \r\n '
+                                '"id_secret": "751C67057C105442",\r\n  '
+                                '"sensor": "TC",\r\n  "value": "25.6",\r\n  '
+                                '"timestamp": "2018-07-19T11:01:41+03:00"\r\n}').encode()
+        self.mqtt_msg.payload = self.mqtt_msg.payload
+        self.formatted_timestamp = '1531987301'
 
         self.servant = Mimic(Spy, SmartObject.AnalogSink)
         self.proxy = self._adapter_add(self.servant)
-        self._subscribe(self.topic_name, self.proxy)
+        self._subscribe(self.icestorm_topic_name, self.proxy)
 
-    def test_get_event(self):
+    def test_get_event_with_value_and_timestamp(self):
         # get an event from IceStorm originated in mqtt broker
-        msg = mqtt.MQTTMessage(mid=0, topic=b'meshliumf958/SCP4/PRES')
-        print(msg.topic)
-        msg.payload = b'{\r\n  "id": "186897",\r\n  "id_wasp": "SCP4", \r\n  "id_secret": "751C67057C105442",\r\n  "sensor": "TC",\r\n  "value": "25.6",\r\n  "timestamp": "2018-07-19T11:01:41+03:00"\r\n}'
-        print(msg.payload)
+        print(self.mqtt_msg.topic)
+        print(self.mqtt_msg.payload)
 
-        mqttAdapter.on_message(client=self.mqttClient, userdata=None, msg=msg)
+        self.mqttAdapter.on_message(client=self.mqtt_client, userdata=None, msg=self.mqtt_msg)
+        meta = {SmartObject.MetadataField.Timestamp: self.formatted_timestamp}
+
         assert_that(self.servant.notify,
                     called().
-                    with_args(25.6, anything() ,anything(),anything()).
+                    with_args(close_to(25.6, 0.000001), '23', meta, anything()).
                     async(timeout=2))
