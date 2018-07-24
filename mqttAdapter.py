@@ -33,7 +33,8 @@ class MqttAdapter:
         value = self._get_value(message['value'])
         formatted_timestamp = self._format_timestamp(message['timestamp'])
         meta = self._get_meta(formatted_timestamp)
-        
+
+        self._print_message_info(msg)
         self.publish(source, icestorm_topic, value, meta)
 
     def _get_source(self, topic):
@@ -62,6 +63,13 @@ class MqttAdapter:
     def publish(self, source, topic, value, meta):
         publisher = self.citisim_broker.get_publisher(topic)
         publisher.publish(value, source=source, meta=meta)
+
+    def _print_message_info(self, msg):
+        print("\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+        print("New MQTT message received:")
+        print("MQTT topic: " + msg.topic)
+        print("Message: \n" + msg.payload.decode())
+        print("\n")
 
     def run(self):
         self.mqtt_client.connect(self.config['broker_addr'])
