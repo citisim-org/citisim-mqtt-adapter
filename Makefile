@@ -1,7 +1,7 @@
 # -*- mode: makefile-gmake; coding: utf-8 -*-
 
 all:
-	python3 mqttAdapter.py citisim.config mqtt.config
+	python3 ./mqttAdapter/__init__.py ./mqttAdapter/citisim.config ./mqttAdapter/mqtt.config
 
 .PHONY: tests
 tests:
