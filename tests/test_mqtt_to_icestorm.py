@@ -102,7 +102,7 @@ class MqttAdapter(EventsMixin, TestCase):
 
         assert_that(self.servant.notify,
                     called().
-                    with_args(close_to(25.6, 0.000001), '00000023', meta, anything()).
+                    with_args(close_to(25.6, 0.000001), 'FF00000100000023', meta, anything()).
                     async(timeout=2))
 
     def test_get_event_from_unconfigured_sensor_id(self):

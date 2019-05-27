@@ -6,8 +6,13 @@ import re
 import Ice
 import paho.mqtt.client as mqtt
 import json
+import logging
+from functools import lru_cache
 from libcitisim import Broker
 from datetime import datetime
+
+logging.getLogger().setLevel(logging.INFO)
+
 
 class MqttAdapter:
     def __init__(self, mqtt_client, citisim_broker, config):
@@ -18,51 +23,53 @@ class MqttAdapter:
         self.config = config
 
     def on_connect(self, client, userdata, flags, rc):
-        print("Connected with result code "+str(rc))
-        mqtt_topics = self.config['topic_list']
-        mqtt_topics = mqtt_topics.split(',')
+        print("Connected with result code " + str(rc))
+        mqtt_topics = self.config['mqtt_topics']
         for topic in mqtt_topics:
-            print(topic.strip())
             client.subscribe(topic.strip())
 
     def on_message(self, client, userdata, msg):
-        message = json.loads(msg.payload.decode())
+        sensor = self._get_sensor(msg.topic)
+        if sensor is None:
+            logging.warning(" Unknown MQTT Topic: '{}', discarding message".format(
+                msg.topic))
+            return
 
-        source = self._get_source(msg.topic)
-        icestorm_topic = self._get_icestorm_topic(message)
-        value = self._get_value(message['value'])
-        formatted_timestamp = self._format_timestamp(message['timestamp'])
-        meta = self._get_meta(formatted_timestamp)
+        source = sensor.get("source")
+        transducer_type = sensor.get("type")
+        if source is None or transducer_type is None:
+            logging.warning(" Invalid sensor configuration: '{}', discarding message".format(
+                msg.topic))
+            return
+
+        message = json.loads(msg.payload.decode())
+        value = float(message['value'])
+        timestamp = self._format_timestamp(message['timestamp'])
+        meta = self._get_meta(timestamp)
 
         self._print_message_info(msg)
-        self.publish(source, icestorm_topic, value, meta)
+        self.publish(source, transducer_type, value, meta)
 
-    def _get_source(self, topic):
-        if topic not in self.config['sensor_ids']:
-            return 'MISSING_ID: '+topic
-        else:
-            return self.config['sensor_ids'][topic]
-
-    def _get_icestorm_topic(self, message):
-        if message['sensor'] not in self.config['icestorm_topics']:
-            return "Unconfigured"
-        else:
-            return self.config['icestorm_topics'][message['sensor']]
-
-    def _get_value(self, value):
-        return float(value)
+    def _get_sensor(self, mqtt_topic):
+        return self.config["sensors"].get(mqtt_topic)
 
     def _format_timestamp(self, timestamp):
-        formatted_timestamp = re.sub(r"[:]|([-](?!((\d{2}[:]\d{2})|(\d{4}))$))", '', timestamp)
-        formatted_timestamp = int(datetime.strptime(formatted_timestamp, "%Y%m%dT%H%M%S%z").timestamp())
+        formatted_timestamp = re.sub(
+            r"[:]|([-](?!((\d{2}[:]\d{2})|(\d{4}))$))", '', timestamp)
+        formatted_timestamp = int(datetime.strptime(
+            formatted_timestamp, "%Y%m%dT%H%M%S%z").timestamp())
         return formatted_timestamp
 
     def _get_meta(self, timestamp):
         return {"timestamp": timestamp}
 
     def publish(self, source, topic, value, meta):
-        publisher = self.citisim_broker.get_publisher(topic)
-        publisher.publish(value, source=source, meta=meta)
+        publisher = self._get_publisher(source, "")
+        publisher.publish(value, meta=meta)
+
+    @lru_cache(maxsize=128)
+    def _get_publisher(self, source, type_):
+        return self.citisim_broker.get_publisher(source, type_)
 
     def _print_message_info(self, msg):
         print("\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
@@ -71,17 +78,17 @@ class MqttAdapter:
         print("Message: \n" + msg.payload.decode())
         print("\n")
 
-    def run(self):
-        self.mqtt_client.connect(self.config['broker_addr'])
-        self.mqtt_client.loop_forever()
+    # def run(self):
+    #     self.mqtt_client.connect(self.config['broker_addr'])
+    #     self.mqtt_client.loop_forever()
 
 
 if __name__ == "__main__":
     citisim_broker = Broker(sys.argv[1])
 
-    json_config=open(sys.argv[2]).read()
+    json_config = open(sys.argv[2]).read()
     config = json.loads(json_config)
-
     mqtt_client = mqtt.Client(config['client'])
+
     mqtt_2_citisim = MqttAdapter(mqtt_client, citisim_broker, config)
     mqtt_2_citisim.run()
