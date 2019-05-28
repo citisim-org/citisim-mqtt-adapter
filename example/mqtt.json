@@ -23,7 +23,7 @@
         },
         "meshliumfa30/SCP6-BEIA/BAT": {
             "source": "0A03000000000004",
-            "type": "VoltageSensor"
+            "type": "CapacitySensor"
         },
         "meshliumfa30/SCP6-BEIA/NO2": {
             "source": "0A03000000000005",
@@ -47,7 +47,7 @@
         },
         "meshliumfa30/BEIA_GAS/BAT": {
             "source": "0A03000000000010",
-            "type": "VoltageSensor"
+            "type": "CapacitySensor"
         },
         "meshliumfa30/BEIA_GAS/LPG": {
             "source": "0A03000000000011",
