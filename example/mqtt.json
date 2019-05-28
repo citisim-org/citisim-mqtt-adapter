@@ -1,0 +1,129 @@
+{
+    "client": "CitisimUCLM",
+    "broker_addr": "mqtt.beia-telemetrie.ro",
+    "mqtt_topics": [
+        "meshliumfa30/BEIA_GAS/#",
+        "meshliumfa30/SCP6-BEIA/#",
+        "mqtt/citisim/pycom/#",
+        "mqtt/verbund/#",
+        "odsi/raspberry/Temperature"
+    ],
+    "sensors": {
+        "meshliumfa30/SCP6-BEIA/PRES": {
+            "source": "0A03000000000001",
+            "type": "PressureSensor"
+        },
+        "meshliumfa30/SCP6-BEIA/CO": {
+            "source": "0A03000000000002",
+            "type": "GasSensor"
+        },
+        "meshliumfa30/SCP6-BEIA/HUM": {
+            "source": "0A03000000000003",
+            "type": "HumiditySensor"
+        },
+        "meshliumfa30/SCP6-BEIA/BAT": {
+            "source": "0A03000000000004",
+            "type": "VoltageSensor"
+        },
+        "meshliumfa30/SCP6-BEIA/NO2": {
+            "source": "0A03000000000005",
+            "type": "GasSensor"
+        },
+        "eshliumfa30/SCP6-BEIA/TC": {
+            "source": "0A03000000000006",
+            "type": "TemperatureSensor"
+        },
+        "meshliumfa30/SCP6-BEIA/PM10": {
+            "source": "0A03000000000007",
+            "type": "ParticulateMatterSensor"
+        },
+        "meshliumfa30/SCP6-BEIA/PM2_5": {
+            "source": "0A03000000000008",
+            "type": "ParticulateMatterSensor"
+        },
+        "meshliumfa30/SCP6-BEIA/PM1": {
+            "source": "0A03000000000009",
+            "type": "ParticulateMatterSensor"
+        },
+        "meshliumfa30/BEIA_GAS/BAT": {
+            "source": "0A03000000000010",
+            "type": "VoltageSensor"
+        },
+        "meshliumfa30/BEIA_GAS/LPG": {
+            "source": "0A03000000000011",
+            "type": "GasSensor"
+        },
+        "meshliumfa30/BEIA_GAS/CO2": {
+            "source": "0A03000000000012",
+            "type": "GasSensor"
+        },
+        "meshliumfa30/BEIA_GAS/HUM": {
+            "source": "0A03000000000013",
+            "type": "HumiditySensor"
+        },
+        "meshliumfa30/BEIA_GAS/O2": {
+            "source": "0A03000000000014",
+            "type": "GasSensor"
+        },
+        "meshliumfa30/BEIA_GAS/VOC": {
+            "source": "0A03000000000015",
+            "type": "GasSensor"
+        },
+        "meshliumfa30/BEIA_GAS/PRES": {
+            "source": "0A03000000000016",
+            "type": "PressureSensor"
+        },
+        "meshliumfa30/BEIA_GAS/NO2": {
+            "source": "0A03000000000017",
+            "type": "GasSensor"
+        },
+        "meshliumfa30/BEIA_GAS/TC": {
+            "source": "0A03000000000018",
+            "type": "TemperatureSensor"
+        },
+        "mqtt/citisim/pycom/ST1/accelerometer_x": {
+            "source": "0A03000000000019",
+            "type": "Accelerometer"
+        },
+        "mqtt/citisim/pycom/ST1/accelerometer_y": {
+            "source": "0A03000000000020",
+            "type": "Accelerometer"
+        },
+        "mqtt/citisim/pycom/ST1/accelerometer_z": {
+            "source": "0A03000000000021",
+            "type": "Accelerometer"
+        },
+        "mqtt/citisim/pycom/ST1/latitude": {
+            "source": "0A03000000000022",
+            "type": "PositionSensor"
+        },
+        "mqtt/citisim/pycom/ST1/longitude": {
+            "source": "0A03000000000023",
+            "type": "PositionSensor"
+        },
+        "mqtt/citisim/pycom/ST1/mq2": {
+            "source": "0A03000000000024",
+            "type": "ParticulateMatterSensor"
+        },
+        "mqtt/citisim/pycom/ST1/mq8": {
+            "source": "0A03000000000025",
+            "type": "ParticulateMatterSensor"
+        },
+        "mqtt/citisim/pycom/ST1/pitch": {
+            "source": "0A03000000000026",
+            "type": "AngleSensor"
+        },
+        "mqtt/citisim/pycom/ST1/roll": {
+            "source": "0A03000000000027",
+            "type": "AngleSensor"
+        },
+        "mqtt/odsi/raspberry/Temperature": {
+            "source": "0A03000000000028",
+            "type": "TemperatureSensor"
+        },
+        "mqtt/verbund/ST1/PT": {
+            "source": "0A03000000000029",
+            "type": "PowerSensor"
+        }
+    }
+}

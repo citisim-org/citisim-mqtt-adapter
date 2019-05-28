@@ -1,7 +1,9 @@
 # -*- mode: makefile-gmake; coding: utf-8 -*-
 
+export PYTHONPATH=$$(pwd)/src
+
 all:
-	python3 ./mqttAdapter/__init__.py ./mqttAdapter/citisim.config ./mqttAdapter/mqtt.config
+	python3 src/mqtt_adapter.py example/citisim.config example/mqtt.json
 
 .PHONY: tests
 tests:
@@ -11,6 +13,5 @@ tests:
 
 .PHONY: clean
 clean:
-	$(RM) -rf __pycache__
-	$(RM) -rf tests/__pycache__
-	$(RM) -rf mqttAdapter/__pycache__
+	find -name "__pycache__" | xargs $(RM) -r
+

@@ -22,11 +22,22 @@ class MqttAdapter:
         self.mqtt_client.on_message = self.on_message
         self.config = config
 
+    def run(self):
+        try:
+            logging.info("MQTT server: " + self.config['broker_addr'])
+            self.mqtt_client.connect(self.config['broker_addr'])
+            self.mqtt_client.loop_forever()
+        except KeyboardInterrupt:
+            self.mqtt_client.disconnect()
+            del self.citisim_broker
+
     def on_connect(self, client, userdata, flags, rc):
-        print("Connected with result code " + str(rc))
+        logging.info("Connected with result code " + str(rc))
         mqtt_topics = self.config['mqtt_topics']
         for topic in mqtt_topics:
             client.subscribe(topic.strip())
+            logging.info("Subscribed to MQTT: " + topic)
+        logging.info("Ready, waiting events...")
 
     def on_message(self, client, userdata, msg):
         sensor = self._get_sensor(msg.topic)
@@ -37,7 +48,7 @@ class MqttAdapter:
 
         source = sensor.get("source")
         transducer_type = sensor.get("type")
-        if source is None or transducer_type is None:
+        if source in (None, "") or transducer_type in (None, ""):
             logging.warning(" Invalid sensor configuration: '{}', discarding message".format(
                 msg.topic))
             return
@@ -47,8 +58,16 @@ class MqttAdapter:
         timestamp = self._format_timestamp(message['timestamp'])
         meta = self._get_meta(timestamp)
 
-        self._print_message_info(msg)
-        self.publish(source, transducer_type, value, meta)
+        # self._print_message_info(msg)
+        self._publish(source, transducer_type, value, meta)
+
+    def _publish(self, source, type_, value, meta):
+        publisher = self._get_publisher(source, type_)
+        publisher.publish(value, meta=meta)
+
+    @lru_cache(maxsize=128)
+    def _get_publisher(self, source, type_):
+        return self.citisim_broker.get_publisher(source, type_)
 
     def _get_sensor(self, mqtt_topic):
         return self.config["sensors"].get(mqtt_topic)
@@ -63,24 +82,12 @@ class MqttAdapter:
     def _get_meta(self, timestamp):
         return {"timestamp": timestamp}
 
-    def publish(self, source, topic, value, meta):
-        publisher = self._get_publisher(source, "")
-        publisher.publish(value, meta=meta)
-
-    @lru_cache(maxsize=128)
-    def _get_publisher(self, source, type_):
-        return self.citisim_broker.get_publisher(source, type_)
-
     def _print_message_info(self, msg):
         print("\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
         print("New MQTT message received:")
         print("MQTT topic: " + msg.topic)
         print("Message: \n" + msg.payload.decode())
         print("\n")
-
-    # def run(self):
-    #     self.mqtt_client.connect(self.config['broker_addr'])
-    #     self.mqtt_client.loop_forever()
 
 
 if __name__ == "__main__":
