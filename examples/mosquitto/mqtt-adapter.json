@@ -1,0 +1,13 @@
+{
+    "client": "MqttAdapter",
+    "broker_addr": "127.0.0.1",
+    "mqtt_topics": [
+        "mqtt-adapter/examples/#"
+    ],
+    "sensors": {
+        "mqtt-adapter/examples/temperature": {
+            "source": "DD00735700000001",
+            "type": "TemperatureSensor"
+        }
+    }
+}

@@ -11,7 +11,17 @@ from functools import lru_cache
 from libcitisim import Broker
 from datetime import datetime
 
-logging.getLogger().setLevel(logging.INFO)
+logger = logging.getLogger("MqttAdapter")
+logger.setLevel(logging.INFO)
+
+
+def catch_errors(fn):
+    def _deco(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except (TypeError, ValueError) as ex:
+            logger.error("Invalid message ({}), discarding".format(ex))
+    return _deco
 
 
 class MqttAdapter:
@@ -24,7 +34,7 @@ class MqttAdapter:
 
     def run(self):
         try:
-            logging.info("MQTT server: " + self.config['broker_addr'])
+            logger.info("MQTT server: " + self.config['broker_addr'])
             self.mqtt_client.connect(self.config['broker_addr'])
             self.mqtt_client.loop_forever()
         except KeyboardInterrupt:
@@ -32,24 +42,27 @@ class MqttAdapter:
             del self.citisim_broker
 
     def on_connect(self, client, userdata, flags, rc):
-        logging.info("Connected with result code " + str(rc))
+        logger.info("Connected with result code " + str(rc))
         mqtt_topics = self.config['mqtt_topics']
         for topic in mqtt_topics:
             client.subscribe(topic.strip())
-            logging.info("Subscribed to MQTT: " + topic)
-        logging.info("Ready, waiting events...")
+            logger.info("Subscribed to MQTT: " + topic)
+        logger.info("Ready, waiting events...")
 
+    @catch_errors
     def on_message(self, client, userdata, msg):
+        # self._print_message_info(msg)
+
         sensor = self._get_sensor(msg.topic)
         if sensor is None:
-            logging.warning(" Unknown MQTT Topic: '{}', discarding message".format(
+            logger.warning(" Unknown MQTT Topic: '{}', discarding message".format(
                 msg.topic))
             return
 
         source = sensor.get("source")
         transducer_type = sensor.get("type")
         if source in (None, "") or transducer_type in (None, ""):
-            logging.warning(" Invalid sensor configuration: '{}', discarding message".format(
+            logger.warning(" Invalid sensor configuration: '{}', discarding message".format(
                 msg.topic))
             return
 
@@ -57,8 +70,6 @@ class MqttAdapter:
         value = float(message['value'])
         timestamp = self._format_timestamp(message['timestamp'])
         meta = self._get_meta(timestamp)
-
-        # self._print_message_info(msg)
         self._publish(source, transducer_type, value, meta)
 
     def _publish(self, source, type_, value, meta):
@@ -73,6 +84,10 @@ class MqttAdapter:
         return self.config["sensors"].get(mqtt_topic)
 
     def _format_timestamp(self, timestamp):
+        if isinstance(timestamp, (int, float)):
+            return str(timestamp)
+
+        # FIXME: timestamp for meta should be an Unix time (seconds since epoch)
         formatted_timestamp = re.sub(
             r"[:]|([-](?!((\d{2}[:]\d{2})|(\d{4}))$))", '', timestamp)
         formatted_timestamp = int(datetime.strptime(
@@ -91,6 +106,10 @@ class MqttAdapter:
 
 
 if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Usage: {} <ice.config> <mqtt-adapter.json>".format(sys.argv[0]))
+        exit(1)
+
     citisim_broker = Broker(sys.argv[1])
 
     json_config = open(sys.argv[2]).read()
